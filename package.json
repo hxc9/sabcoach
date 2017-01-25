@@ -1,0 +1,21 @@
+{
+    "author": "alexis.hafner@gmail.com",
+    "dependencies": {},
+    "keywords": [],
+    "name": "coach-sabou",
+    "pebble": {
+        "displayName": "Coach Sabou",
+        "enableMultiJS": true,
+        "messageKeys": [],
+        "projectType": "native",
+        "resources": {
+            "media": []
+        },
+        "sdkVersion": "3",
+        "uuid": "1d370c4e-3fbb-41fd-a262-5d25b776cbd2",
+        "watchapp": {
+            "watchface": false
+        }
+    },
+    "version": "1.0.0"
+}
