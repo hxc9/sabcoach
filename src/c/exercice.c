@@ -9,6 +9,7 @@ static TextLayer *s_time_layer_d;
 static const int MAX_REPETITION = 5;
 
 static int tMax = 0;
+static int tMin = 0;
 static int tWork = 0;
 static int tRest = 0;
 static int repetition = -2;
@@ -17,16 +18,19 @@ static bool phase_running = false;
 static time_t s_start_time;
 
 void compute_times();
+void next_repetition(int elapsed_time, bool incomplete);
 
 static void click_handler(ClickRecognizerRef recognizer, void *context) {
   if (repetition == -2) {
     repetition = -1;
   } else if (repetition == -1) {
     compute_times();
+  } else if (repetition < MAX_REPETITION * 2 &&  repetition % 2 == 1) {
+    next_repetition(time(NULL) - s_start_time, true);
   }
 }
 
-static void run_phase_c(time_t tick) {
+static void run_phase_c() {
   text_layer_set_text(s_text_layer_u, "Max time");
   text_layer_set_text(s_repetition_layer_m, NULL);
   int seconds = (int)tMax % 60;
@@ -34,6 +38,18 @@ static void run_phase_c(time_t tick) {
   static char et_buffer[] = "00:00";
   snprintf(et_buffer, sizeof(et_buffer), "%d:%02d", minutes, seconds);
   text_layer_set_text(s_time_layer_d, et_buffer);
+  
+  tMin = tMin / 0.8;
+  if (tMin > tMax) {
+    tMin = tMax;
+  }
+  
+  seconds = (int)tMin % 60;
+  minutes = (int)tMin / 60 % 100;
+  static char et_buffer_2[] = "00:00";
+  snprintf(et_buffer_2, sizeof(et_buffer_2), "%d:%02d", minutes, seconds);
+  text_layer_set_text(s_repetition_layer_m, et_buffer_2);
+  
   vibes_double_pulse();
 }
 
@@ -64,7 +80,8 @@ static void run_phase_b(time_t tick) {
     text_layer_set_text(s_repetition_layer_m, rep_buffer);
   }
   
-  int remaining_time = (isRest ? tRest : tWork) - tick + s_start_time;
+  int elapsed_time = tick - s_start_time;
+  int remaining_time = (isRest ? tRest : tWork) - elapsed_time;
   int seconds = (int)remaining_time % 60;
   int minutes = (int)remaining_time / 60 % 100;
   
@@ -73,13 +90,7 @@ static void run_phase_b(time_t tick) {
   text_layer_set_text(s_time_layer_d, et_buffer);
   
   if (remaining_time <= 0) {
-    phase_running = false;
-    repetition++;
-    if (repetition >= MAX_REPETITION * 2) {
-      run_phase_c(tick);
-    } else {
-      vibes_short_pulse();
-    }
+    next_repetition(elapsed_time, false);
   }
 }
 
@@ -168,7 +179,22 @@ int main(void) {
 void compute_times() {
   phase_running = false;
   tMax = time(NULL) - s_start_time;
+  tMin = tMax;
   tRest = tMax * 0.5;
   tWork = tMax * 0.8;
+  tMin = tWork;
   repetition = 0;
+}
+
+void next_repetition(int elapsed_time, bool incomplete) {
+  phase_running = false;
+  repetition++;
+  if (repetition >= MAX_REPETITION * 2) {
+    run_phase_c();
+  } else {
+    vibes_short_pulse();
+  }
+  if (incomplete && elapsed_time < tMin) {
+    tMin = elapsed_time;
+  }
 }
